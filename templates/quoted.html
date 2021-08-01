@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+
+{% block main %}
+
+Item: {{ title }} <br>
+<!-- <img src="imgg" width="300" height="300"> <br> -->
+Price: {{ price }} <br>
+<br>
+
+<form action="/email" method="post">
+    <div class="input-group mb-3">
+        <input type="text" class="form-control" name="link" id="link" value="{{link}}" readonly>
+    </div>
+
+    We'll send an email to: 
+    <div class="input-group mb-3">
+        <input type="text" autocomplete="off" autofocus name="email" class="form-control" placeholder="Email" aria-label="Recipient's username" aria-describedby="button-addon2">
+        
+    </div>
+    When the price drops below:
+    <div class="input-group mb-3">   
+        <span class="input-group-text">$</span>
+        <input type="number" autocomplete="off" autofocus name="priceAlert" class="form-control" placeholder="Price" aria-label="Recipient's username" aria-describedby="button-addon2">  
+        <button class="btn btn-outline-secondary" type="submit" id="button-addon2">Track!</button>
+    </div>
+</form>
+
+<pre>
+Percent off:
+-3%:(${{'%0.2f'| format(convertedPrice*0.97|float)}})
+-5%:(${{'%0.2f'| format(convertedPrice*0.95|float)}})
+-7%:(${{'%0.2f'| format(convertedPrice*0.93|float)}})
+-10%:(${{'%0.2f'| format(convertedPrice*0.9|float)}})
+
+</pre>
+
+
+{% endblock %}
