@@ -12,17 +12,16 @@ from flask import Flask, flash, redirect, render_template, request, session
 from flask_session import Session
 from tempfile import mkdtemp
 from validators.url import url
-from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
-from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.useragents import UserAgent
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
+import atexit
 
 from helpers import check_email
 
 
-
 def compare():
+
     conn = sqlite3.connect('data.db', check_same_thread=False)
     c = conn.cursor()
     
@@ -33,16 +32,14 @@ def compare():
         email = entry[0]
         url = entry[1]
         price = entry[2]
+        useragent = entry[3]
 
-        currentPrice = check_price(url)
+        currentPrice = check_price(url, useragent)
 
         if currentPrice <= price:
             send_email(email, url, price)
 
     conn.close()
-
-
-
 
 
 conn = sqlite3.connect('data.db', check_same_thread=False)
@@ -60,10 +57,12 @@ c = conn.cursor()
 #             '54.99')""")
 
 
-
-
-
 app = Flask(__name__)
+
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=compare, trigger="interval", hours=4)
+scheduler.start()
 
 # Ensure templates are auto-reloaded
 app.config["TEMPLATES_AUTO_RELOAD"] = True
@@ -81,9 +80,6 @@ app.config["SESSION_FILE_DIR"] = mkdtemp()
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
-
-
-
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -121,7 +117,7 @@ def index():
         convertedPrice = float(convertedPrice)
     
         return render_template("quoted.html", price=price, title=title, convertedPrice=convertedPrice, link=link)
-    
+
 
     return render_template("index.html")
 
@@ -129,6 +125,8 @@ def index():
 @app.route("/email", methods=["GET", "POST"])
 def email():
     if request.method == "POST":
+
+        user_agent = UserAgent(request.headers.get('User-Agent')).string
 
         priceAlert = float(request.form.get("priceAlert"))
 
@@ -142,10 +140,10 @@ def email():
         if not check_email(email):
             return "Invalid Email"
         
-        c.execute("INSERT INTO emails (email, url, priceAlert) VALUES(?,?,?)", (email, link, priceAlert))
+        c.execute("INSERT INTO emails (email, url, priceAlert, useragent) VALUES(?,?,?, ?)", (email, link, priceAlert, user_agent))
 
-        
         conn.commit()
+
         conn.close()
 
         return redirect("/")
@@ -153,17 +151,22 @@ def email():
     return redirect("/")
 
 
-def check_price(url):
+def check_price(url, useragent):
 
-    user_agent = UserAgent(request.headers.get('User-Agent')).string
-
-    headers = {"User-Agent": user_agent, "Referer": url}
+    headers = {"User-Agent": useragent, "Referer": url}
 
     page = requests.get(url, headers=headers)
 
     soup = BeautifulSoup(page.content, 'html.parser')
     
-    price = soup.find(id="priceblock_ourprice").get_text().strip()
+    price = soup.find(id="priceblock_ourprice")
+
+    if price == None:
+        price = soup.find(id="priceblock_saleprice")
+        if price == None:
+            price = soup.find(id="priceblock_dealprice")
+
+    price = price.get_text().strip()
 
     convertedPrice = (price[1:])
 
@@ -191,3 +194,9 @@ def send_email(email, link, price):
     print('Email has been sent!')
 
     server.quit()
+
+atexit.register(lambda: scheduler.shutdown())
+
+if __name__ == '__main__':
+
+    app.run()
