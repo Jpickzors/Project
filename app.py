@@ -16,7 +16,6 @@ from werkzeug.useragents import UserAgent
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
-
 from helpers import check_email
 
 
