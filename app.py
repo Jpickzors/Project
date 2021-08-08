@@ -15,23 +15,27 @@ from validators.url import url
 from werkzeug.useragents import UserAgent
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
+from flask_sqlalchemy import SQLAlchemy
 import atexit
 from helpers import check_email
 
 
+
 def compare():
 
-    conn = sqlite3.connect('data.db', check_same_thread=False)
-    c = conn.cursor()
+    # conn = sqlite3.connect('data.db', check_same_thread=False)
+    # c = conn.cursor()
     
-    d = c.execute("SELECT * FROM emails")
-    d = c.fetchall()
+    # d = c.execute("SELECT * FROM emails")
+    # d = c.fetchall()
+
+    d = db.session.query(Amazon).all()
 
     for entry in d:
-        email = entry[0]
-        url = entry[1]
-        price = entry[2]
-        useragent = entry[3]
+        email = entry.email
+        url = entry.url
+        price = entry.priceAlert
+        useragent = entry.useragent
 
         currentPrice = check_price(url, useragent)
 
@@ -58,9 +62,37 @@ c = conn.cursor()
 
 app = Flask(__name__)
 
+ENV = 'prod'
+
+if ENV == 'dev':
+    app.debug = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123@localhost/amazon1'
+
+else:
+    app.debug = False
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://ofsuhgiilkyipq:42b6dce0475b68da87d1763404b71192236991faaea448af9f5c20a34a590044@ec2-54-83-82-187.compute-1.amazonaws.com:5432/dfu4u8shea2uc6'
+
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+class Amazon(db.Model):
+    __tablename__ = 'amazon1'
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String)
+    url = db.Column(db.String)
+    priceAlert = db.Column(db.Float)
+    useragent = db.Column(db.String)
+
+    def __init__(self, email, url, priceAlert, useragent):
+        self.email = email
+        self.url = url
+        self.priceAlert = priceAlert
+        self.useragent = useragent
+
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=compare, trigger="interval", hours=4)
+scheduler.add_job(func=compare, trigger="interval", seconds=30)
 scheduler.start()
 
 # Ensure templates are auto-reloaded
@@ -83,7 +115,7 @@ Session(app)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
- 
+
     if request.method == "POST":
 
         link = request.form.get("url")
@@ -125,13 +157,13 @@ def index():
 def email():
     if request.method == "POST":
 
-        user_agent = UserAgent(request.headers.get('User-Agent')).string
+        useragent = UserAgent(request.headers.get('User-Agent')).string
 
         priceAlert = float(request.form.get("priceAlert"))
 
         email = request.form.get("email")
 
-        link = request.form.get("link")
+        url = request.form.get("link")
 
         if priceAlert <= 0:
             return "Enter a positive number"
@@ -139,11 +171,16 @@ def email():
         if not check_email(email):
             return "Invalid Email"
         
-        c.execute("INSERT INTO emails (email, url, priceAlert, useragent) VALUES(?,?,?, ?)", (email, link, priceAlert, user_agent))
+        data = Amazon(email, url, priceAlert, useragent)
+        db.session.add(data)
+        db.session.commit()
 
-        conn.commit()
 
-        conn.close()
+        # c.execute("INSERT INTO emails (email, url, priceAlert, useragent) VALUES(?,?,?, ?)", (email, url, priceAlert, useragent))
+
+        # conn.commit()
+
+        # conn.close()
 
         return redirect("/")
 
