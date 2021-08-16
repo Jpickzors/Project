@@ -220,7 +220,7 @@ def send_email(email, link, price):
     server.starttls()
     server.ehlo()
 
-    server.login('justin.picks88@gmail.com', 'gpsddwiadslhtsvd')
+    server.login('ama.zon.price.tracker2@gmail.com', 'oscnyfjzyflsdlzb')
 
     remove_link = 'https://ama-zon-price-tracker.herokuapp.com/remove'
 
