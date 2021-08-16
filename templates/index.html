@@ -2,11 +2,43 @@
 
 {% block main %}
 
+{% if message %}
+
+<p class="alert alert-warning">{{ message }}</p>
+
+{% endif %}
+
+{% if message1 %}
+
+<p class="alert alert-success">{{ message1 }}</p>
+
+{% endif %}
+
+{% if message2 %}
+
+<p class="alert alert-success">{{ message2 }}</p>
+
+{% endif %}
+
+{% if error %}
+
+<p class="alert alert-success">{{ error }}</p>
+
+{% endif %}
+
+{% if error1 %}
+
+<p class="alert alert-warning">{{ error1 }}</p>
+
+{% endif %}
+
+Paste an Amazon Link below to set-up a Price Alert.
 <form action="/" method="post">
-    <div class="input-group mb-3">
+    <div class="input-group mb-3"></div>
         <input type="text" autocomplete="off" autofocus name="url" class="form-control" placeholder="Amazon URL" aria-label="Recipient's username" aria-describedby="button-addon2">
-        <button class="btn btn-outline-secondary" type="submit" id="button-addon2">Enter</button>
-    </div>
+    <div class="input-group mb-3"></div>
+        <button class="btn btn-outline-secondary orange-button" type="submit" id="button-addon2">Enter</button>
+
 </form>
 
 

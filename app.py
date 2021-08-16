@@ -4,7 +4,6 @@ from sqlite3.dbapi2 import Cursor
 import requests
 import validators
 import sqlite3
-import re
 import smtplib
 from bs4 import BeautifulSoup
 from lxml import etree as et
@@ -16,18 +15,12 @@ from werkzeug.useragents import UserAgent
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import and_
 import atexit
 from helpers import check_email
 
 
-
 def compare():
-
-    # conn = sqlite3.connect('data.db', check_same_thread=False)
-    # c = conn.cursor()
-    
-    # d = c.execute("SELECT * FROM emails")
-    # d = c.fetchall()
 
     d = db.session.query(Amazon).all()
 
@@ -41,23 +34,6 @@ def compare():
 
         if currentPrice <= price:
             send_email(email, url, price)
-
-    conn.close()
-
-
-conn = sqlite3.connect('data.db', check_same_thread=False)
-
-c = conn.cursor()
-
-# c.execute("""CREATE TABLE emails (
-#             email TEXT,
-#             url TEXT,
-#             priceAlert REAL
-#             )""")
-            
-# c.execute("""INSERT INTO emails VALUES ('justin.picks88@gmail.com', 
-#             'https://www.amazon.ca/dp/B08C1TR9X6/ref=ods_gw_evg_gwd_btf_smp_snp_en_070121?pf_rd_r=39X0DWTDRXA2XC9WSTHH&pf_rd_p=1e63de0a-d85b-4cdd-82ab-b7771d38e5a8&pd_rd_r=621fe901-9bef-489a-99d5-bd787e634989&pd_rd_w=3b1Ji&pd_rd_wg=DfeRa&ref_=pd_gw_unk', 
-#             '54.99')""")
 
 
 app = Flask(__name__)
@@ -90,10 +66,10 @@ class Amazon(db.Model):
         self.priceAlert = priceAlert
         self.useragent = useragent
 
-
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=compare, trigger="interval", seconds=30)
-scheduler.start()
+if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(func=compare, trigger="interval", hours=24)
+    scheduler.start()
 
 # Ensure templates are auto-reloaded
 app.config["TEMPLATES_AUTO_RELOAD"] = True
@@ -121,9 +97,12 @@ def index():
         link = request.form.get("url")
 
         if not validators.url(link):
-            return "Enter a valid URL"
+            return render_template("index.html", message="Enter a valid URL (ex: https://...)")
 
-        user_agent = UserAgent(request.headers.get('User-Agent')).string
+        # user_agent = UserAgent(request.headers.get('User-Agent')).string
+
+        # user_agent kept static to avoid Amazon blocking scraping access.
+        user_agent = 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:80.0) Gecko/20100101 Firefox/80.0'
 
         headers = {"User-Agent": user_agent, "Referer": link}        
 
@@ -157,13 +136,21 @@ def index():
 def email():
     if request.method == "POST":
 
-        useragent = UserAgent(request.headers.get('User-Agent')).string
+        #useragent = UserAgent(request.headers.get('User-Agent')).string
 
-        priceAlert = float(request.form.get("priceAlert"))
+        useragent = 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:80.0) Gecko/20100101 Firefox/80.0'
 
         email = request.form.get("email")
 
         url = request.form.get("link")
+
+        if bool(Amazon.query.filter_by(email=email, url=url).first()) == True:
+            return render_template("index.html", error1='You have already inserted this email and URL into the database! Try again with a different product!')
+
+        if url == '' or email == '':
+            return "Please enter the required fields"
+
+        priceAlert = float(request.form.get("priceAlert"))
 
         if priceAlert <= 0:
             return "Enter a positive number"
@@ -171,20 +158,35 @@ def email():
         if not check_email(email):
             return "Invalid Email"
         
-        data = Amazon(email, url, priceAlert, useragent)
+        data = (Amazon(email, url, priceAlert, useragent))
         db.session.add(data)
         db.session.commit()
 
-
-        # c.execute("INSERT INTO emails (email, url, priceAlert, useragent) VALUES(?,?,?, ?)", (email, url, priceAlert, useragent))
-
-        # conn.commit()
-
-        # conn.close()
-
-        return redirect("/")
+        return render_template("index.html", message1="Success! An email will be sent once the price is at or below your target price! We will send an email every 24 hrs to remind you. To remove your entry from the Price Tracker, please visit the 'Remove Alert' tab!")
 
     return redirect("/")
+
+@app.route("/remove", methods=["GET", "POST"])
+def remove():
+
+    if request.method == "POST":
+        
+        url_1 = request.form.get("url")
+        email_1 = request.form.get("email")
+
+        if url == '' or email == '':
+            return render_template('remove.html', message='Please enter the required fields')
+
+        if bool(Amazon.query.filter_by(email=email_1, url=url_1).first()) == True:
+            Amazon.query.filter_by(email=email_1, url=url_1).delete()
+            db.session.commit()
+
+            return render_template("index.html", message2='The Price Alert has been removed!')
+
+        else:
+            return render_template("remove.html", error='Data not found in Database. Are you sure you had entered the information correctly?')             
+
+    return render_template("remove.html")
 
 
 def check_price(url, useragent):
@@ -220,8 +222,10 @@ def send_email(email, link, price):
 
     server.login('justin.picks88@gmail.com', 'gpsddwiadslhtsvd')
 
+    remove_link = 'https://ama-zon-price-tracker.herokuapp.com/remove'
+
     subject = 'Amazon Price Tracker: The Price Fell Below Your Target!'
-    body = f'Your tracked item fell below your target price of {price}. \r\r\nCheck the Amazon link: {link}'
+    body = f'Your tracked item fell below your target price of {price}. \r\r\nCheck the Amazon link: {link}.  \r\r\nTo cancel alerts, visit {remove_link}.'
 
     msg = f'Subject: {subject}\n\n{body}'
 
@@ -230,8 +234,6 @@ def send_email(email, link, price):
     print('Email has been sent!')
 
     server.quit()
-
-atexit.register(lambda: scheduler.shutdown())
 
 if __name__ == '__main__':
 

@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+
+{% block main %}
+
+<form action="/remove" method="post">
+    {% if message %}
+
+    <p class="alert alert-warning">{{ message }}</p>
+
+    {% endif %}
+
+    {% if error %}
+
+    <p class="alert alert-danger">{{ error }}</p>
+
+    {% endif %}
+
+
+    Enter the information below to delete your Price Alert.
+    <div class="input-group mb-3"></div>
+        <input type="text" autofocus name="email" class="form-control" placeholder="Email" aria-label="Recipient's username" aria-describedby="button-addon2">
+    </div>
+    <div class="input-group mb-3"></div>
+        <input type="text" autocomplete="off" autofocus name="url" class="form-control" placeholder="Amazon URL" aria-label="Recipient's username" aria-describedby="button-addon2">
+    </div>
+    <br>
+    <button class="btn btn-outline-secondary orange-button" type="submit" id="button-addon2">Delete Alert</button>
+
+</form>
+
+
+
+
+
+{% endblock %}

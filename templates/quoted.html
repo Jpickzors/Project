@@ -2,10 +2,16 @@
 
 {% block main %}
 
-Item: {{ title }} <br>
+Item: <b>{{ title }}</b> <br>
 <!-- <img src="imgg" width="300" height="300"> <br> -->
-Price: {{ price }} <br>
+Price: <b>{{ price }}</b> <br>
 <br>
+
+{% if message %}
+
+<p class="alert alert-warning">{{ message }}</p>
+
+{% endif %}
 
 <form action="/email" method="post">
     <div class="input-group mb-3">
@@ -13,15 +19,16 @@ Price: {{ price }} <br>
     </div>
 
     We'll send an email to: 
-    <div class="input-group mb-3">
+    <div class="input-group mb-3"></div>
         <input type="text" autocomplete="off" autofocus name="email" class="form-control" placeholder="Email" aria-label="Recipient's username" aria-describedby="button-addon2">
-        
     </div>
+
+    <br>
     When the price drops below:
     <div class="input-group mb-3">   
         <span class="input-group-text">$</span>
         <input type="number" step="0.01" autocomplete="off" autofocus name="priceAlert" class="form-control" placeholder="Price" aria-label="Recipient's username" aria-describedby="button-addon2">  
-        <button class="btn btn-outline-secondary" type="submit" id="button-addon2">Track!</button>
+        <button class="btn btn-outline-secondary orange-button" type="submit" id="button-addon2">Track!</button>
     </div>
 </form>
 
