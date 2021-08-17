@@ -1,6 +1,6 @@
 # AmazonPriceTracker
 
-#### [Video Demo](youtube.com/watch?v=Iz775rtNq8Y)
+#### [Video Demo](https://www.youtube.com/watch?v=Iz775rtNq8Y)
 #### Description: A tool that will notify you by email once the price of an Amazon product goes below your set price. 
   
   Visit the [Amazon Price Tracker](https://ama-zon-price-tracker.herokuapp.com/) and try it for yourself!
