@@ -14,5 +14,6 @@
    To delete your price alert, click on the ['Remove Alert tab'](https://ama-zon-price-tracker.herokuapp.com/remove) and enter your email and the URL of the product.
   </p>
   
-#### Disclaimer:
+## Disclaimer
 Update on 11-14-2022: Amazon has basic anti-scraping measures put in place (their page-structure evolves over time to avoid scraping), therefore this might affect the website's overall functionality as it relies on page scraping for it's data.
+This website was developed as a personal project only, and does not intend on monetizing in any aspect.
