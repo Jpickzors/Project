@@ -39,7 +39,7 @@ Flask-APScheduler = "==1.12.2"
 Flask-Session = "==0.4.0"
 Jinja2 = "==3.0.1"
 MarkupSafe = "==2.0.1"
-Werkzeug = "==2.0.1"
+Werkzeug = "==2.2.3"
 psycopg2 = "*"
 flask-sqlalchemy = "*"
 

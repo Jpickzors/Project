@@ -112,15 +112,24 @@ def index():
 
         title = soup.find(id="productTitle").get_text().strip()
 
-        price = soup.find(id="priceblock_ourprice")
+        price = soup.find("span", {"class": "a-offscreen"})
+
+        print(price)
+
+        if price == None:
+            price = soup.find(id="a-price-whole")
 
         if price == None:
            price = soup.find(id="priceblock_saleprice")
            if price == None:
                 price = soup.find(id="priceblock_dealprice")
 
-        price = price.get_text().strip()
+        if price is not None:
+            price = price.get_text().strip()
+        else:
+            price = "Price not available"
 
+        print(price)
 
         convertedPrice = (price[1:])
 
@@ -197,7 +206,7 @@ def check_price(url, useragent):
 
     soup = BeautifulSoup(page.content, 'html.parser')
     
-    price = soup.find(id="priceblock_ourprice")
+    price = soup.find("span", {"class": "a-offscreen"})
 
     if price == None:
         price = soup.find(id="priceblock_saleprice")
